@@ -1,0 +1,238 @@
+---
+title: "Final_625"
+author: "Edward Shao"
+date: "12/16/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(tidyverse)
+library(splines)
+library(MASS)
+```
+
+## Data loading
+```{r}
+d.625 <- read.csv("C:/Users/s-edw/Downloads/Conditions_Contributing_to_COVID-19_Deaths__by_State_and_Age__Provisional_2020-2022.csv")
+d.625 <- d.625[d.625$Group == "By Month", ] # Examine the data monthly rather than by year or total
+d.625 <- d.625[d.625$State != "United States", ] # Interested in each state individually, not the total for the US
+d.625 <- d.625[(d.625$Age.Group != "All Ages") & (d.625$Age.Group != "Not stated"), ] # Remove aggregate and not stated groups for Age
+d.625$totMonth <- (d.625$Year - 2020) * 12 + d.625$Month # Create numerical variable for number of months since Dec 2019 for model fitting
+d.625 <- d.625[, -c(1:6, 10, 13, 14)] # Remove unnecessary columns (time cols, Group, ICD10 Codes, Flag, etc.)
+```
+
+
+
+## Data Cleaning
+```{r}
+d.625 <- d.625[d.625$Group == "By Month", ] # Examine the data monthly rather than by year or total
+d.625 <- d.625[d.625$State != "United States", ] # Interested in each state individually, not the total for the US
+d.625 <- d.625[(d.625$Age.Group != "All Ages") & (d.625$Age.Group != "Not stated"), ] # Remove aggregate and not stated groups for Age
+d.625$totMonth <- (d.625$Year - 2020) * 12 + d.625$Month # Create numerical variable for number of months since Dec 2019 for model fitting
+d.625 <- d.625[, -c(1:6, 10, 13, 14)] # Remove unnecessary columns (time cols, Group, ICD10 Codes, Flag, etc.)
+```
+
+
+
+###### POPULATION DATA FOR MAPPING RATES ######################################
+
+```{r}
+## Get population data for each state
+d.pop <- read.csv("Population Data.csv")
+d.pop <- d.pop[, -c(2,3)]
+d.pop <- mutate(d.pop, across('Population.Estimate..July.1..2021..POP_2021.', str_replace, ',', ''))
+d.pop <- mutate(d.pop, across('Population.Estimate..July.1..2021..POP_2021.', str_replace, ',', ''))
+# Necessary to do twice or else it will only remove one comma, and the following command will not be able to coerce it to a numerical variable.
+d.pop[, 2] <- as.numeric(d.pop[, 2])
+```
+
+## Data cleaning for population data
+```{r}
+## Manipulate columns to merge neatly with ggplot state data
+colnames(d.pop) <- c("region", "Population")
+d.pop$region <- tolower(d.pop$region)
+
+
+```
+
+
+## Visualization / Exploratory Analysis
+
+### Basic Data visualization
+
+## boxplot of conditions vs COVID-19 deaths factored by conditions.
+```{r}
+ggplot(subset(data,data$Condition%in%unique(data$Condition)[1:2]), aes(x=as.factor(Condition), y=COVID.19.Deaths)) + geom_boxplot(aes(fill=as.factor(Age.Group)))
+
+ggplot(subset(data,data$Condition%in%unique(data$Condition)[3:4]), aes(x=as.factor(Condition), y=COVID.19.Deaths)) + geom_boxplot(aes(fill=as.factor(Age.Group)))
+
+ggplot(subset(data,data$Condition%in%unique(data$Condition)[5:6]), aes(x=as.factor(Condition), y=COVID.19.Deaths)) + geom_boxplot(aes(fill=as.factor(Age.Group)))
+
+ggplot(subset(data,data$Condition%in%unique(data$Condition)[7:8]), aes(x=as.factor(Condition), y=COVID.19.Deaths)) + geom_boxplot(aes(fill=as.factor(Age.Group)))
+
+ggplot(subset(data,data$Condition%in%unique(data$Condition)[9:10]), aes(x=as.factor(Condition), y=COVID.19.Deaths)) + geom_boxplot(aes(fill=as.factor(Age.Group)))
+
+ggplot(subset(data,data$Condition%in%unique(data$Condition)[11:12]), aes(x=as.factor(Condition), y=COVID.19.Deaths)) + geom_boxplot(aes(fill=as.factor(Age.Group)))
+
+ggplot(subset(data,data$Condition%in%unique(data$Condition)[13:14]), aes(x=as.factor(Condition), y=COVID.19.Deaths)) + geom_boxplot(aes(fill=as.factor(Age.Group)))
+
+ggplot(subset(data,data$Condition%in%unique(data$Condition)[15:16]), aes(x=as.factor(Condition), y=COVID.19.Deaths)) + geom_boxplot(aes(fill=as.factor(Age.Group)))
+
+ggplot(subset(data,data$Condition%in%unique(data$Condition)[17:18]), aes(x=as.factor(Condition), y=COVID.19.Deaths)) + geom_boxplot(aes(fill=as.factor(Age.Group)))
+
+ggplot(subset(data,data$Condition%in%unique(data$Condition)[19:20]), aes(x=as.factor(Condition), y=COVID.19.Deaths)) + geom_boxplot(aes(fill=as.factor(Age.Group)))
+
+ggplot(subset(data,data$Condition%in%unique(data$Condition)[21:22]), aes(x=as.factor(Condition), y=COVID.19.Deaths)) + geom_boxplot(aes(fill=as.factor(Age.Group)))
+
+ggplot(subset(data,data$Condition%in%unique(data$Condition)[23]), aes(x=as.factor(Condition), y=COVID.19.Deaths)) + geom_boxplot(aes(fill=as.factor(Age.Group)))
+```
+
+
+
+
+
+
+
+
+###### Mapping - Spatial analysis #############################################
+## Mapping data
+
+```{r}
+states <- map_data("state")
+d.625.mapping <- d.625[d.625$Age.Group == "All Ages", -c(1:6, 10, 13, 14)]
+d.625.mapping <- aggregate(COVID.19.Deaths ~ totMonth + State, data = d.625.mapping, FUN = sum)
+```
+
+
+
+## Aggregate New York and New York City
+```{r}
+
+d.625.mapping$State[d.625.mapping$State == "New York City"] = "New York"
+d.625.mapping <- aggregate(COVID.19.Deaths ~ State + totMonth, data = d.625.mapping, FUN = sum)
+
+```
+
+
+## Merge Datasets (population and states data)
+```{r}
+d.625.mapping$region <- tolower(d.625.mapping$State)
+
+d.625.mapping <- merge(d.625.mapping, states, by = "region")
+d.625.mapping <- merge(d.625.mapping, d.pop, by = "region")
+
+```
+
+
+
+## Create the COVID Deaths Per 100000 variable for plotting
+```{r}
+d.625.mapping$COVID.Deaths.Per.100000 <- d.625.mapping$COVID.19.Deaths / (d.625.mapping$Population / 100000)
+```
+
+
+
+## Print all maps for each time point - 2 second delay between maps
+```{r}
+for (i in 1:35) {
+  print(ggplot(d.625.mapping[d.625.mapping$totMonth == i, ], aes(x = long, y = lat, group = group)) + geom_polygon(aes(fill = COVID.Deaths.Per.100000), color = "black") + scale_fill_gradient(low = "gray", high = "red", limits = c(0, 360)) + labs(title = paste("Number of Months:", as.character(i), sep = " "))) 
+  Sys.sleep(2)
+}
+
+```
+
+
+
+###### Time series for condition group - Temporal and conditions analysis #####
+```{r}
+
+## Subset the data for time series analysis
+
+d.625.c <- d.625[d.625$Condition.Group != "COVID-19", ]
+
+## Aggregate COVID Deaths over date and Condition group
+d.625.c <- aggregate(COVID.19.Deaths ~ totMonth + Condition.Group, data = d.625.c, FUN = sum)
+
+## Plot time series of COVID Deaths
+ggplot(d.625.c, aes(x = totMonth, y = COVID.19.Deaths, group = Condition.Group)) + geom_line(aes(color = Condition.Group), size = 0.75) + xlab("Months Since Dec 2019") + ylab("Deaths from COVID-19")
+
+```
+
+
+
+
+## Modeling
+###### IMPUTATION #############################################################
+#### Impute each missing point from uniform(1,9)
+
+```{r}
+## Copy the dataset for imputation
+d.625.imp <- d.625
+
+## Impute from uniform(1,9)
+set.seed(123456)
+d.625.imp$COVID.19.Deaths[is.na(d.625.imp$COVID.19.Deaths)] = round(runif(length(d.625.imp$COVID.19.Deaths[is.na(d.625.imp$COVID.19.Deaths)]), 0.5, 9.49))
+
+```
+
+
+###### Regression Modeling ####################################################
+```{r}
+## Copy the dataset for modeling
+d.625.m <- d.625.imp
+
+## Aggregate New York and New York City
+d.625.m$State[d.625.m$State == "New York City"] = "New York"
+d.625.m <- aggregate(COVID.19.Deaths ~ State + Condition.Group + Condition + Age.Group + totMonth, data = d.625.m, FUN = sum)
+
+## Remove COVID-19 deaths without co-existing conditions, as well as the All category
+d.625.m <- d.625.m[(d.625.m$Condition.Group != "COVID-19") & (d.625.m$Condition.Group != "All other conditions and causes (residual)"), ]
+```
+
+
+###### Modelling several potential models #####################################
+## Naive model - lm (Normal outcome) with linear time
+
+```{r}
+m.naive <- lm(COVID.19.Deaths ~ totMonth + Condition.Group + Age.Group + State, data = d.625.m)
+summary(m.naive)
+```
+
+# Adjusted R^2 = 0.1269 - Fits well enough, but we know this model to not be very accurate
+
+## lm with a linear spline
+# Spline knots obtained from exploratory analysis with time series and condition groups,
+
+```{r}
+m.lm.spline <- lm(COVID.19.Deaths ~ bs(totMonth, degree = 1, knots = c(4, 9, 13, 18, 21, 23, 25)) + Condition.Group + Age.Group + State, data = d.625.m)
+summary(m.lm.spline)
+```
+
+## glm with poisson link - linear spline
+```{r}
+m.glm.spline <- glm(COVID.19.Deaths ~ bs(totMonth, degree = 1, knots = c(4, 9, 13, 18, 21, 23, 25)) + Condition.Group + Age.Group + State, data = d.625.m, family = "poisson")
+summary(m.glm.spline)
+```
+
+
+
+# Check for overdispersion? Negative Binomial model may be more approbriate
+```{r}
+pchisq(m.glm.spline$deviance, df=m.glm.spline$df.residual, lower.tail=FALSE)
+```
+# p-value = 0, reject the null - There is overdispersion
+
+## glm with Negative Binomial link, linear spline for time
+```{r}
+m.nb.spline <- glm.nb(COVID.19.Deaths ~ bs(totMonth, degree = 1, knots = c(4, 9, 13, 18, 21, 23, 25)) + Condition.Group + Age.Group + State, data = d.625.m)
+summary(m.nb.spline)
+```
+
+# Better fit - Dispersion parameter for Negative Binomial (0.6468) family taken to be 1
+
+## Using GEE with negative binomial link, linear spline for time?
+# m.nb.gee <- geem(COVID.19.Deaths ~ bs(totMonth, degree = 1, knots = c(4, 9, 13, 18, 21, 23, 25)) + Condition.Group + Age.Group, id = State, data = d.625.m, corstr = "exchangeable", family = negative.binomial(1))
+# Unable to fit
+
+## We can then consider the glm with a Negative Binomial link and a linear spline for time to be the final model.
