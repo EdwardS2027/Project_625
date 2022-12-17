@@ -108,14 +108,14 @@ The Age Group variable was similarly unsurprising - lower age ranges were associ
 
 ```{r}
 ## Read in the data
-d.625 <- read.csv("C:/Users/s-edw/Downloads/625FinalProjectData.csv")
+d.625 <- read.csv("C:/Users/s-edw/Downloads/Conditions_Contributing_to_COVID-19_Deaths__by_State_and_Age__Provisional_2020-2022.csv")
 d.625 <- d.625[d.625$Group == "By Month", ]
 d.625 <- d.625[d.625$State != "United States", ]
 d.625$totMonth <- (d.625$Year - 2020) * 12 + d.625$Month
 
 ###### POPULATION DATA FOR MAPPING RATES ######################################
 ## Get population data for each state
-d.pop <- read.csv("C:/Users/s-edw/Downloads/Population Data.csv")
+d.pop <- read.csv("Population Data.csv")
 d.pop <- d.pop[, -c(2,3)]
 d.pop <- mutate(d.pop, across('Population.Estimate..July.1..2021..POP_2021.', str_replace, ',', ''))
 d.pop <- mutate(d.pop, across('Population.Estimate..July.1..2021..POP_2021.', str_replace, ',', ''))
@@ -125,6 +125,7 @@ d.pop[, 2] <- as.numeric(d.pop[, 2])
 ## Manipulate columns to merge neatly with ggplot state data
 colnames(d.pop) <- c("region", "Population")
 d.pop$region <- tolower(d.pop$region)
+
 ###### Mapping - Spatial analysis #############################################
 ## Mapping data
 states <- map_data("state")
