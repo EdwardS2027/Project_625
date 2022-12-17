@@ -1,0 +1,15 @@
+Variable Name,Data Type,Data Description
+Data As Of,Date & Time,Last date for which there is data.
+Start Date,Date & Time,Start date for the group of data in the row
+End Date,Date & Time,End date for the group of data in the row
+Group,Character,"Time period indicator for record: by Month, by Year, or Total"
+Year,Numerical,Year in which the death occurred
+Month,Numerical,Month in which the death occurred
+State,Character,State in which the death occurred
+Condition Group,Character,Condition group of the Condition variable
+Condition,Character,Condition contributing to deaths involving COVID-19
+ICD10_Codes,Character,ICD10 code corresponding to the condition
+Age Group,Character,Age group within which the death occurred
+COVID-19 Deaths,Numerical,Count of COVID-19 Deaths
+Number of Mentions,Numerical,Count of COVID-19 mentions
+Flag,Character,Counts less than 10 suppressed
