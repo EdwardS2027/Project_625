@@ -10,34 +10,15 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(ggplot2)
 library(stringr)
+library(splines)
+library(MASS)
 ```
 
 
-```{r setup2, include=FALSE}
-## Read in the data
-d.625 <- read.csvread.csv("625FinalProjectData.csv")
-d.625 <- d.625[d.625$Group == "By Month", ]
-d.625 <- d.625[d.625$State != "United States", ]
-d.625$totMonth <- (d.625$Year - 2020) * 12 + d.625$Month
 
-###### POPULATION DATA FOR MAPPING RATES ######################################
-## Get population data for each state
-d.pop <- read.csv("Population Data.csv")
-d.pop <- d.pop[, -c(2,3)]
-d.pop <- mutate(d.pop, across('Population.Estimate..July.1..2021..POP_2021.', str_replace, ',', ''))
-d.pop <- mutate(d.pop, across('Population.Estimate..July.1..2021..POP_2021.', str_replace, ',', ''))
-# Necessary to do twice or else it will only remove one comma, and the following command will not be able to coerce it to a numerical variable.
-d.pop[, 2] <- as.numeric(d.pop[, 2])
-
-## Manipulate columns to merge neatly with ggplot state data
-colnames(d.pop) <- c("region", "Population")
-d.pop$region <- tolower(d.pop$region)
-
-```
-
-```{r setup3, include=FALSE}
+```{r, include=FALSE}
 ###### Read in the data #######################################################
-d.625 <- read.csv("625FinalProjectData.csv")
+d.625 <- read.csv("C:/Users/s-edw/Downloads/Conditions_Contributing_to_COVID-19_Deaths__by_State_and_Age__Provisional_2020-2022.csv")
 d.625 <- d.625[d.625$Group == "By Month", ] # Examine the data monthly rather than by year or total
 d.625 <- d.625[d.625$State != "United States", ] # Interested in each state individually, not the total for the US
 d.625 <- d.625[(d.625$Age.Group != "All Ages") & (d.625$Age.Group != "Not stated"), ] # Remove aggregate and not stated groups for Age
@@ -52,6 +33,17 @@ d.625.imp <- d.625
 ## Impute from uniform(1,9)
 set.seed(123456)
 d.625.imp$COVID.19.Deaths[is.na(d.625.imp$COVID.19.Deaths)] = round(runif(length(d.625.imp$COVID.19.Deaths[is.na(d.625.imp$COVID.19.Deaths)]), 0.5, 9.49))
+
+###### Regression Modeling ####################################################
+## Copy the dataset for modeling
+d.625.m <- d.625.imp
+
+## Aggregate New York and New York City
+d.625.m$State[d.625.m$State == "New York City"] = "New York"
+d.625.m <- aggregate(COVID.19.Deaths ~ State + Condition.Group + Condition + Age.Group + totMonth, data = d.625.m, FUN = sum)
+
+## Remove COVID-19 deaths without co-existing conditions, as well as the All category
+d.625.m <- d.625.m[(d.625.m$Condition.Group != "COVID-19") & (d.625.m$Condition.Group != "All other conditions and causes (residual)"), ]
 
 
 m.nb.spline <- glm.nb(COVID.19.Deaths ~ bs(totMonth, degree = 1, knots = c(4, 9, 13, 18, 21, 23, 25)) + Condition.Group + Age.Group + State, data = d.625.m)
@@ -115,22 +107,24 @@ The Age Group variable was similarly unsurprising - lower age ranges were associ
 ## Appendix
 
 ```{r}
-###### Time series for condition group - Temporal and conditions analysis #####
-## Subset the data for time series analysis
-d.625.c <- d.625[d.625$Condition.Group != "COVID-19", ]
+## Read in the data
+d.625 <- read.csv("C:/Users/s-edw/Downloads/625FinalProjectData.csv")
+d.625 <- d.625[d.625$Group == "By Month", ]
+d.625 <- d.625[d.625$State != "United States", ]
+d.625$totMonth <- (d.625$Year - 2020) * 12 + d.625$Month
 
-## Aggregate COVID Deaths over date and Condition group
-d.625.c <- aggregate(COVID.19.Deaths ~ totMonth + Condition.Group, data = d.625.c, FUN = sum)
+###### POPULATION DATA FOR MAPPING RATES ######################################
+## Get population data for each state
+d.pop <- read.csv("C:/Users/s-edw/Downloads/Population Data.csv")
+d.pop <- d.pop[, -c(2,3)]
+d.pop <- mutate(d.pop, across('Population.Estimate..July.1..2021..POP_2021.', str_replace, ',', ''))
+d.pop <- mutate(d.pop, across('Population.Estimate..July.1..2021..POP_2021.', str_replace, ',', ''))
+# Necessary to do twice or else it will only remove one comma, and the following command will not be able to coerce it to a numerical variable.
+d.pop[, 2] <- as.numeric(d.pop[, 2])
 
-## Plot time series of COVID Deaths
-ggplot(d.625.c, aes(x = totMonth, y = COVID.19.Deaths, group = Condition.Group)) + geom_line(aes(color = Condition.Group), size = 0.75) + xlab("Months Since Dec 2019") + ylab("Deaths from COVID-19")
-
-```
-
-[Figure 1 is of temporal analysis - time series plot separated by Condition Group]
-
-
-```{r}
+## Manipulate columns to merge neatly with ggplot state data
+colnames(d.pop) <- c("region", "Population")
+d.pop$region <- tolower(d.pop$region)
 ###### Mapping - Spatial analysis #############################################
 ## Mapping data
 states <- map_data("state")
@@ -158,7 +152,29 @@ for (i in 1:35) {
 
 ```
 
-[Figure 2 is of spatial analysis - a few maps of COVID-19 Deaths per 10000 at different time points]
+[Figure 1 is of spatial analysis - a few maps of COVID-19 Deaths per 10000 at different time points]
+
+
+```{r}
+###### Time series for condition group - Temporal and conditions analysis #####
+## Subset the data for time series analysis
+d.625.c <- d.625[d.625$Condition.Group != "COVID-19", ]
+
+## Aggregate COVID Deaths over date and Condition group
+d.625.c <- aggregate(COVID.19.Deaths ~ totMonth + Condition.Group, data = d.625.c, FUN = sum)
+
+## Plot time series of COVID Deaths
+ggplot(d.625.c, aes(x = totMonth, y = COVID.19.Deaths, group = Condition.Group)) + geom_line(aes(color = Condition.Group), size = 0.75) + xlab("Months Since Dec 2019") + ylab("Deaths from COVID-19")
+
+```
+[Figure 2 is of temporal analysis - time series plot separated by Condition Group]
+
+
+```{r}
+ggplot(subset(d.625,d.625$Condition%in%unique(d.625$Condition)[1:2]), aes(x=as.factor(Condition), y=COVID.19.Deaths)) + geom_boxplot(aes(fill=as.factor(Age.Group)))
+```
+
+[Figure 3 is of boxplot of COVID-19 deaths versus few of conidtions factored by age groups]
 
 ```{r}
 summary(m.nb.spline)$coefficients
