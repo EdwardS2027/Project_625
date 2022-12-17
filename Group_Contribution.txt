@@ -1,0 +1,5 @@
+Ben Smith - Exploratory Analysis (spatial mapping and time series), Modeling (Poisson Regression)
+
+Edward Shao - Initial Exploratory Analysis, Conclusion and abstract of report, organizing github/report
+
+Wenrui Zhao (Note she was extrememly ill) - Background of report, offered advice for the project, worked on slides
