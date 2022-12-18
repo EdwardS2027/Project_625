@@ -1,12 +1,12 @@
 ###### Initialize Workspace ###################################################
-setwd("C:/Users/IBHSm/Desktop/R Stuffs")
+setwd("C:/Users/s-edw/Downloads/")
 library(ggplot2)
 library(tidyverse)
 library(splines)
 library(MASS)
 
 ###### Read in the data #######################################################
-d.625 <- read.csv("625FinalProjectData.csv")
+d.625 <- read.csv("C:/Users/s-edw/Downloads/Conditions_Contributing_to_COVID-19_Deaths__by_State_and_Age__Provisional_2020-2022.csv")
 d.625 <- d.625[d.625$Group == "By Month", ] # Examine the data monthly rather than by year or total
 d.625 <- d.625[d.625$State != "United States", ] # Interested in each state individually, not the total for the US
 d.625 <- d.625[(d.625$Age.Group != "All Ages") & (d.625$Age.Group != "Not stated"), ] # Remove aggregate and not stated groups for Age
@@ -60,16 +60,27 @@ d.625.m <- d.625.m[(d.625.m$Condition.Group != "COVID-19") & (d.625.m$Condition.
 ## Naive model - lm (Normal outcome) with linear time
 
 m.naive <- lm(COVID.19.Deaths ~ totMonth + Condition.Group + Age.Group + State, data = d.625.m)
+par(mfrow=c(2,2))
+plot(m.naive)
 summary(m.naive)
 # Adjusted R^2 = 0.1269 - Fits well enough, but we know this model to not be very accurate
+## There is bit of curve in resiuals plot and QQ plot is not good fit
+## We need to change models
 
 ## lm with a linear spline
 # Spline knots obtained from exploratory analysis with time series and condition groups,
 m.lm.spline <- lm(COVID.19.Deaths ~ bs(totMonth, degree = 1, knots = c(4, 9, 13, 18, 21, 23, 25)) + Condition.Group + Age.Group + State, data = d.625.m)
+par(mfrow=c(2,2))
+plot(m.lm.spline)
 summary(m.lm.spline)
+## Residuals plots are more random, but QQ plot is still way off
+
 
 ## glm with poisson link - linear spline
 m.glm.spline <- glm(COVID.19.Deaths ~ bs(totMonth, degree = 1, knots = c(4, 9, 13, 18, 21, 23, 25)) + Condition.Group + Age.Group + State, data = d.625.m, family = "poisson")
+par(mfrow=c(2,2))
+plot(m.glm.spline)
+## STill a curve pattern in residuals plot and QQ plot is way off, no significnat leverages
 summary(m.glm.spline)
 # Check for overdispersion? Negative Binomial model may be more approbriate
 pchisq(m.glm.spline$deviance, df=m.glm.spline$df.residual, lower.tail=FALSE)
@@ -77,6 +88,9 @@ pchisq(m.glm.spline$deviance, df=m.glm.spline$df.residual, lower.tail=FALSE)
 
 ## glm with Negative Binomial link, linear spline for time
 m.nb.spline <- glm.nb(COVID.19.Deaths ~ bs(totMonth, degree = 1, knots = c(4, 9, 13, 18, 21, 23, 25)) + Condition.Group + Age.Group + State, data = d.625.m)
+par(mfrow=c(2,2))
+plot(m.nb.spline)
+## STill a curve pattern in residuals plot and QQ plot is way off
 summary(m.nb.spline)
 # Better fit - Dispersion parameter for Negative Binomial (0.6468) family taken to be 1
 

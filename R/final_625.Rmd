@@ -1,0 +1,105 @@
+---
+title: "Untitled"
+author: "Edward Shao"
+date: "12/3/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(readxl)
+library(ggplot2)
+data = read.csv("C:/Users/s-edw/Downloads/Conditions_Contributing_to_COVID-19_Deaths__by_State_and_Age__Provisional_2020-2022.csv")
+print(nrow(data))
+data = data[complete.cases(data),]
+data = data[which(data$Age.Group !="Not stated"),]
+data = data[which(data$Age.Group!="All Ages"),]
+data = data[1:10000,]
+attach(data)
+
+```
+
+
+```{r}
+data = read.csv("C:/Users/s-edw/Downloads/Conditions_Contributing_to_COVID-19_Deaths__by_State_and_Age__Provisional_2020-2022.csv")
+print(nrow(data))
+head(data)
+class(Start.Date)
+```
+
+
+```{r}
+for(i in 1:nrow(data))
+{
+  start = strsplit(data[i,2], split = "/")
+  data[i,5]= as.integer(start[[1]][3])
+  data[i,6]= as.integer(start[[1]][2])
+}
+head(data)
+```
+
+Find the most/least frequent values for some of the columns
+```{r}
+tail(names(sort(table(data$Year))),1)
+tail(names(sort(table(data$Month))),1)
+tail(names(sort(table(data$State))),1)
+tail(names(sort(table(data$Condition.Group))),1)
+tail(names(sort(table(data$Condition))),1)
+tail(names(sort(table(data$Age.Group))),1)
+mean(COVID.19.Deaths,na.rm=TRUE)
+```
+
+```{r}
+unique(data$Condition)
+```
+
+```{r}
+ggplot(subset(data,data$Condition%in%unique(data$Condition)[1:2]), aes(x=as.factor(Condition), y=COVID.19.Deaths)) + geom_boxplot(aes(fill=as.factor(Age.Group)))
+
+ggplot(subset(data,data$Condition%in%unique(data$Condition)[3:4]), aes(x=as.factor(Condition), y=COVID.19.Deaths)) + geom_boxplot(aes(fill=as.factor(Age.Group)))
+
+ggplot(subset(data,data$Condition%in%unique(data$Condition)[5:6]), aes(x=as.factor(Condition), y=COVID.19.Deaths)) + geom_boxplot(aes(fill=as.factor(Age.Group)))
+
+ggplot(subset(data,data$Condition%in%unique(data$Condition)[7:8]), aes(x=as.factor(Condition), y=COVID.19.Deaths)) + geom_boxplot(aes(fill=as.factor(Age.Group)))
+
+ggplot(subset(data,data$Condition%in%unique(data$Condition)[9:10]), aes(x=as.factor(Condition), y=COVID.19.Deaths)) + geom_boxplot(aes(fill=as.factor(Age.Group)))
+
+ggplot(subset(data,data$Condition%in%unique(data$Condition)[11:12]), aes(x=as.factor(Condition), y=COVID.19.Deaths)) + geom_boxplot(aes(fill=as.factor(Age.Group)))
+
+ggplot(subset(data,data$Condition%in%unique(data$Condition)[13:14]), aes(x=as.factor(Condition), y=COVID.19.Deaths)) + geom_boxplot(aes(fill=as.factor(Age.Group)))
+
+ggplot(subset(data,data$Condition%in%unique(data$Condition)[15:16]), aes(x=as.factor(Condition), y=COVID.19.Deaths)) + geom_boxplot(aes(fill=as.factor(Age.Group)))
+
+ggplot(subset(data,data$Condition%in%unique(data$Condition)[17:18]), aes(x=as.factor(Condition), y=COVID.19.Deaths)) + geom_boxplot(aes(fill=as.factor(Age.Group)))
+
+ggplot(subset(data,data$Condition%in%unique(data$Condition)[19:20]), aes(x=as.factor(Condition), y=COVID.19.Deaths)) + geom_boxplot(aes(fill=as.factor(Age.Group)))
+
+ggplot(subset(data,data$Condition%in%unique(data$Condition)[21:22]), aes(x=as.factor(Condition), y=COVID.19.Deaths)) + geom_boxplot(aes(fill=as.factor(Age.Group)))
+
+ggplot(subset(data,data$Condition%in%unique(data$Condition)[23]), aes(x=as.factor(Condition), y=COVID.19.Deaths)) + geom_boxplot(aes(fill=as.factor(Age.Group)))
+```
+## If we do linear regression, interaction term between age and condition.
+
+
+
+
+```{r}
+data$time = data$Year+(data$Month/12)
+#ggplot(data = data, aes(x = Month, y = COVID.19.Deaths)) + geom_point() +  geom_smooth()
+#ggplot(data = data, aes(x = Year, y = COVID.19.Deaths)) + geom_point() +  geom_smooth()
+#ggplot(data = data, aes(x = time, y = COVID.19.Deaths)) + geom_point() 
+plot(x=Month,y=COVID.19.Deaths)
+plot(x=Year,y=COVID.19.Deaths)
+plot(x=time,y=COVID.19.Deaths)
+
+```
+
+
+
+
+```{r}
+model = lm(COVID.19.Deaths~factor(Condition)+factor(Age.Group)+Year+Month+factor(State)+Number.of.Mentions)
+summary(model)
+plot(model)
+```
+Line Assumptions violated
